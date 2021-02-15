@@ -1,0 +1,30 @@
+Notes:
+HOUR scale (per minute data)
+ It seems to update about every 10 minutes, but the data is delayed by 7-20 minutes
+ Once a timestamp is published it doesn't appear to be updated
+ Pulling HOUR scale once per minute with current timestamp will drop data.  The data
+ array moves on to the next hour but the previous hour hasn't been filled in yet.
+ Recommend pulling now() and now()-1h every 5-10 minutes
+
+DAY scale (per hour data)
+ Updated once per hour for last hour, data is delayed 10-15 minutes
+ Once a timestamp is published it doesn't appear to be updated
+ Pulling with the current timestamp only will miss an hour at midnight.
+ Recommend pulling once per hour at 15-20 past the hour, for now()-1h
+ Possibly pull at 15 & 45 past the hour for backup
+
+MONTH scale (per day data)
+ A day's record is updated every hour (at the same time as the DAY scale hour is updated)
+ Recommend pulling once per hour at 15-20 past the hour, for now()-1h
+ Possibly pull at 15 & 45 past the hour for backup
+
+YEAR scale (per month data)
+ A month's record is updated every hour (at the same time as the DAY scale hour is updated)
+ Recommend pulling once per hour at 15-20 past the hour, for now()-1h
+ Possibly pull at 15 & 45 past the hour for backup
+
+
+HOUR:
+ Every 5 minutes for now()-15m (unless same hour)
+DAY, MONTH, YEAR:
+ Every 15,45 for now()-1h

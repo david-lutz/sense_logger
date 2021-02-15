@@ -1,0 +1,66 @@
+# Configuration File for sense_logger tools
+
+# Sense Account Credentials (use sense-login to update)
+[Sense]
+# Account Credentials (use sense-login to update)
+credential-file = "~/.sense.json"
+
+# Cooked Threshold, even when the Solar inverters are off my Sense unit reads a
+# small amount of current.  Data points less than this value will be clamped to 0.
+# Specify a value in Watts, it will be adjusted to the appropriate time scale.
+production_threshold = 3.0
+
+# MQTT Broker configuration (only used for RealTime publishing)
+[MQTT]
+broker = "tcp://example.net:1883"
+username = ""
+password = ""
+topic = "sense/realtime"
+
+# InfluxDB Connection Credentials
+[InfluxDB.Connection]
+addr = "http://example.net:8086"
+username = "username"
+password = "password"
+
+# Measurement and Retention Policies
+[InfluxDB.Hour]
+database = "energy"
+precision = "s"
+measurement = "sense_trend"
+retention_policy = "minute"
+
+[InfluxDB.Day]
+database = "energy"
+precision = "s"
+measurement = "sense_trend"
+retention_policy = "hour"
+
+[InfluxDB.Month]
+database = "energy"
+precision = "s"
+measurement = "sense_trend"
+retention_policy = "day"
+
+[InfluxDB.Year]
+database = "energy"
+precision = "s"
+measurement = "sense_trend"
+retention_policy = "month"
+
+[InfluxDB.RealTime]
+database = "energy"
+precision = "ms"
+measurement = "sense_realtime"
+retention_policy = "sense_realtime"
+
+[InfluxDB.PGEBill]
+database = "energy"
+measurement = "pge_bill"
+# precision and retention_policy config values are not used
+
+[InfluxDB.PGEBank]
+database = "energy"
+measurement = "pge_bank"
+# precision and retention_policy config values are not used
+
