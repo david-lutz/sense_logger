@@ -2,12 +2,14 @@ package sense
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/buger/jsonparser"
 )
 
 // RealTime contains selected fields from the Sense "realtime_uptime" message
 type RealTime struct {
+	Timestamp   time.Time  `json:"timestamp"`
 	Voltage     [2]float64 `json:"voltage"`
 	Frequency   float64    `json:"frequency"`
 	Channels    [4]float64 `json:"channels"`
@@ -23,7 +25,7 @@ func (rt RealTime) ToJSON() ([]byte, error) {
 
 // MessageType parses the "type" field from sense websocket message
 func MessageType(message []byte) (string, error) {
-	messageType, err := jsonparser.GetUnsafeString(message, "type")
+	messageType, err := jsonparser.GetString(message, "type")
 	if err != nil {
 		return "", err
 	}
@@ -65,6 +67,9 @@ func ParseRealTimeData(message []byte) (RealTime, error) {
 				results.Consumption = val
 			case 8:
 				results.Production = val
+			case 9:
+				// Funny math helps with "rounding" issues, sense only reports in microseconds
+				results.Timestamp = time.Unix(0, int64(val*1e6)*1000)
 			}
 		},
 		[]string{"payload", "voltage", "[0]"},
@@ -75,7 +80,8 @@ func ParseRealTimeData(message []byte) (RealTime, error) {
 		[]string{"payload", "channels", "[3]"},
 		[]string{"payload", "hz"},
 		[]string{"payload", "w"},
-		[]string{"payload", "solar_w"})
+		[]string{"payload", "solar_w"},
+		[]string{"payload", "_stats", "brcv"})
 	if loopErr != nil {
 		return RealTime{}, loopErr
 	}

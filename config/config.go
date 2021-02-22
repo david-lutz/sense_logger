@@ -27,31 +27,27 @@ type MQTTConfig struct {
 	Topic    string `toml:"topic"`
 }
 
-// InfluxHDBTTPConfig holds database connection parameters
-type InfluxHDBTTPConfig struct {
-	Addr     string `toml:"addr"`
-	Username string `toml:"username"`
-	Password string `toml:"password"`
+// InfluxServer holds database connection parameters
+type InfluxServer struct {
+	URL   string `toml:"url"`
+	Org   string `toml:"org"`
+	Token string `toml:"token"`
 }
 
 // InfluxDBBatchConfig holds configuration for a batch of points
 type InfluxDBBatchConfig struct {
-	Database        string `toml:"database"`
-	RetentionPolicy string `toml:"retention_policy"`
-	Measurement     string `toml:"measurement"`
-	Precision       string `toml:"precision"`
+	Bucket      string `toml:"bucket"`
+	Measurement string `toml:"measurement"`
 }
 
-// InfluxDBConfig holds database and measurement parameters
+// InfluxDBConfig holds server and measurement parameters
 type InfluxDBConfig struct {
-	HTTPConfig InfluxHDBTTPConfig  `toml:"Connection"`
-	Hour       InfluxDBBatchConfig `toml:"Hour"`
-	Day        InfluxDBBatchConfig `toml:"Day"`
-	Month      InfluxDBBatchConfig `toml:"Month"`
-	Year       InfluxDBBatchConfig `toml:"Year"`
-	RealTime   InfluxDBBatchConfig `toml:"RealTime"`
-	PGEBill    InfluxDBBatchConfig `toml:"PGEBill"`
-	PGEBank    InfluxDBBatchConfig `toml:"PGEBank"`
+	Server   InfluxServer        `toml:"Server"`
+	Hour     InfluxDBBatchConfig `toml:"Hour"`
+	Day      InfluxDBBatchConfig `toml:"Day"`
+	Month    InfluxDBBatchConfig `toml:"Month"`
+	Year     InfluxDBBatchConfig `toml:"Year"`
+	RealTime InfluxDBBatchConfig `toml:"RealTime"`
 }
 
 // Config is the structure of the external configuration file

@@ -17,50 +17,34 @@ username = ""
 password = ""
 topic = "sense/realtime"
 
-# InfluxDB Connection Credentials
-[InfluxDB.Connection]
-addr = "http://example.net:8086"
-username = "username"
-password = "password"
+# InfluxDB Connection
+[InfluxDB.Server]
+url = "http://example.net:8086"
+org = "my-org"
+token = "token"
 
-# Measurement and Retention Policies
+# Bucket and Measurements
 [InfluxDB.Hour]
-database = "energy"
-precision = "s"
+# One hour of per minute data
+bucket = "EnergyPerMinute"
 measurement = "sense_trend"
-retention_policy = "minute"
 
 [InfluxDB.Day]
-database = "energy"
-precision = "s"
-measurement = "sense_trend"
-retention_policy = "hour"
+# One day of per hour data
+bucket = "Energy"
+measurement = "hour_sense_trend"
 
 [InfluxDB.Month]
-database = "energy"
-precision = "s"
-measurement = "sense_trend"
-retention_policy = "day"
+# One month of per day data
+bucket = "Energy"
+measurement = "day_sense_trend"
 
 [InfluxDB.Year]
-database = "energy"
-precision = "s"
-measurement = "sense_trend"
-retention_policy = "month"
+# One year of per month data
+bucket = "Energy"
+measurement = "month_sense_trend"
 
 [InfluxDB.RealTime]
-database = "energy"
-precision = "ms"
+# High frequency "real time" streaming data
+bucket = "EnergyRealtime"
 measurement = "sense_realtime"
-retention_policy = "sense_realtime"
-
-[InfluxDB.PGEBill]
-database = "energy"
-measurement = "pge_bill"
-# precision and retention_policy config values are not used
-
-[InfluxDB.PGEBank]
-database = "energy"
-measurement = "pge_bank"
-# precision and retention_policy config values are not used
-

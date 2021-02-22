@@ -2,56 +2,74 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/david-lutz/sense_logger/config"
 	"github.com/david-lutz/sense_logger/sense"
+	"golang.org/x/time/rate"
 
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
 )
 
-func influxDBConnect(influxCfg *config.InfluxHDBTTPConfig) (influxdb.Client, error) {
-	client, err := influxdb.NewHTTPClient(influxdb.HTTPConfig{
-		Addr:     influxCfg.Addr,
-		Username: influxCfg.Username,
-		Password: influxCfg.Password,
-		Timeout:  1 * time.Second, // Data is coming in quickly, so use a small timeout
-	})
-
-	return client, err
+// Publisher implementation
+type influxDBPublisher struct {
+	client      influxdb2.Client
+	writeAPI    api.WriteAPI
+	measurement string
+	monitorID   int64
+	threshold   float64
 }
 
-// Store Realtime Messages in InfluxDB
-func influxDBPublisherLoop(client influxdb.Client, batchCfg *config.InfluxDBBatchConfig, monitorID int64,
-	threshold float64, msgCh chan sense.RealTime, errCh chan errorMsg) {
+// Setup connection to InfluxDB database for writing realtime data points
+func influxDBConnect(cfg *config.Config) publisher {
+	client := influxdb2.NewClientWithOptions(
+		cfg.InfluxDB.Server.URL,
+		cfg.InfluxDB.Server.Token,
+		influxdb2.DefaultOptions().SetPrecision(time.Microsecond)) // Precision in Sense message
 
-	for realtime := range msgCh {
-		// Use a Rate Limited for logging
-		batch, err := newBatch(batchCfg, monitorID, threshold, realtime)
-		if err != nil {
-			logErrorMsg("influxDBPublisherLoop", err, errCh)
-			continue
-		}
+	writeAPI := client.WriteAPI(cfg.InfluxDB.Server.Org, cfg.InfluxDB.RealTime.Bucket)
 
-		err = client.Write(batch)
-		if err != nil {
-			logErrorMsg("influxDBPublisherLoop", err, errCh)
-			continue
+	// Limit how fast we can spam the log
+	limiter := rate.NewLimiter(rate.Every(30*time.Second), 10)
+	go influxDBErrorLogger(writeAPI.Errors(), limiter)
+
+	return &influxDBPublisher{
+		client:      client,
+		writeAPI:    writeAPI,
+		measurement: cfg.InfluxDB.RealTime.Measurement,
+		monitorID:   cfg.Sense.Credentials.MonitorID,
+		threshold:   cfg.Sense.ProductionThreshold}
+}
+
+// Error logging loop for async InfluxDB writes
+func influxDBErrorLogger(errCh <-chan error, limiter *rate.Limiter) {
+	for err := range errCh {
+		if limiter.Allow() {
+			log.Print("Influx WriteAPI:", err)
 		}
 	}
 }
 
-// Create an InfluxDB Point from the RealTime value
-func newPoint(measurement string, monitorID int64, threshold float64, realtime sense.RealTime) (*influxdb.Point, error) {
+// Close publisher
+func (p *influxDBPublisher) Close() {
+	p.writeAPI.Flush()
+	p.client.Close()
+}
+
+// Publish a Realtime data point to InfluxDB
+func (p *influxDBPublisher) Publish(realtime sense.RealTime) {
 	// If the production is below the threshold, set it to zero
 	productionCooked := realtime.Production
-	if productionCooked < threshold {
+	if productionCooked < p.threshold {
 		productionCooked = 0.0
 	}
 
 	// Tag with MonitorID
 	tags := map[string]string{
-		"monitorID": fmt.Sprintf("%d", monitorID),
+		"monitorID": fmt.Sprintf("%d", p.monitorID),
 	}
 
 	// Map structure to InfluxDB fields
@@ -67,25 +85,7 @@ func newPoint(measurement string, monitorID int64, threshold float64, realtime s
 		"production":          productionCooked,
 		"production_raw":      realtime.Production,
 	}
-	point, err := influxdb.NewPoint("sense_realtime", tags, fields)
-	return point, err
-}
 
-// Make an InfluxDB batch with a single RealTime data point
-func newBatch(batchCfg *config.InfluxDBBatchConfig, monitorID int64, threshold float64, realtime sense.RealTime) (influxdb.BatchPoints, error) {
-	batch, err := influxdb.NewBatchPoints(influxdb.BatchPointsConfig{
-		Database:        batchCfg.Database,
-		RetentionPolicy: batchCfg.RetentionPolicy,
-		Precision:       batchCfg.Precision,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	point, err := newPoint(batchCfg.Measurement, monitorID, threshold, realtime)
-	if err != nil {
-		return nil, err
-	}
-	batch.AddPoint(point)
-	return batch, nil
+	point := write.NewPoint(p.measurement, tags, fields, realtime.Timestamp)
+	p.writeAPI.WritePoint(point)
 }

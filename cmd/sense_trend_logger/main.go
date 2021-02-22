@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/david-lutz/sense_logger/config"
 	"github.com/david-lutz/sense_logger/sense"
-	influxdb "github.com/influxdata/influxdb1-client/v2"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -66,37 +68,32 @@ func main() {
 		batchCfg = cfg.InfluxDB.Year
 	}
 
-	// Format Trend Data for InfluxDB
-	batch, err := influxdb.NewBatchPoints(influxdb.BatchPointsConfig{
-		Database:        batchCfg.Database,
-		RetentionPolicy: batchCfg.RetentionPolicy,
-		Precision:       batchCfg.Precision,
-	})
-	fatalOnErr(err)
-
 	// Filter out TrendRecords with no data, the Sense API will fill return empty
 	// future records when we are part way through a time period
-	batch = filterAddPoints(batchCfg.Measurement, cfg.Sense.Credentials.MonitorID,
-		productionThreshold, batch, trendRecords)
+	batch := filterPoints(batchCfg.Measurement, cfg.Sense.Credentials.MonitorID,
+		productionThreshold, trendRecords)
 
 	// Write to InfluxDB if we have any data
-	if len(batch.Points()) > 0 {
-		client, err := influxdb.NewHTTPClient(influxdb.HTTPConfig{
-			Addr:     cfg.InfluxDB.HTTPConfig.Addr,
-			Username: cfg.InfluxDB.HTTPConfig.Username,
-			Password: cfg.InfluxDB.HTTPConfig.Password,
-			Timeout:  30 * time.Second,
-		})
-		fatalOnErr(err)
+	if len(batch) > 0 {
+		client := influxdb2.NewClientWithOptions(
+			cfg.InfluxDB.Server.URL,
+			cfg.InfluxDB.Server.Token,
+			influxdb2.DefaultOptions().SetPrecision(time.Second))
+		defer client.Close()
 
-		err = client.Write(batch)
+		writeAPI := client.WriteAPIBlocking(
+			cfg.InfluxDB.Server.Org,
+			batchCfg.Bucket)
+
+		err := writeAPI.WritePoint(context.Background(), batch...)
 		fatalOnErr(err)
 	}
 }
 
 // Add TrendRecords to a batch if they are non-zero, adjusting the produciton value along the way
-func filterAddPoints(measurement string, monitorID int64, threshold float64, batch influxdb.BatchPoints, trendRecords []sense.TrendRecord) influxdb.BatchPoints {
+func filterPoints(measurement string, monitorID int64, threshold float64, trendRecords []sense.TrendRecord) []*write.Point {
 
+	batch := make([]*write.Point, 0, len(trendRecords))
 	for _, trendRecord := range trendRecords {
 		// Filter out missing data
 		if trendRecord.Consumption == 0 && trendRecord.Production == 0 {
@@ -118,16 +115,12 @@ func filterAddPoints(measurement string, monitorID int64, threshold float64, bat
 
 		tags := map[string]string{
 			"monitorID": fmt.Sprintf("%d", monitorID),
-			"scale":     trendRecord.Scale.String(),
 		}
 
-		point, err := influxdb.NewPoint(measurement, tags, fields, trendRecord.Timestamp)
-		if err != nil {
-			log.Print(err) // Not a fatal, we just skip the point and move on
-		} else {
-			batch.AddPoint(point)
-		}
+		point := write.NewPoint(measurement, tags, fields, trendRecord.Timestamp)
+		batch = append(batch, point)
 	}
+
 	return batch
 }
 
