@@ -1,24 +1,26 @@
 module github.com/david-lutz/sense_logger
 
+go 1.18
+
 require (
 	github.com/buger/jsonparser v1.1.1
-	github.com/deepmap/oapi-codegen v1.5.1 // indirect
-	github.com/eclipse/paho.mqtt.golang v1.3.2
-	github.com/gorilla/websocket v1.4.2
-	github.com/influxdata/influxdb-client-go/v2 v2.2.2
-	github.com/influxdata/line-protocol v0.0.0-20201012155213-5f565037cbc9 // indirect
-	github.com/jessevdk/go-flags v1.4.0
-	github.com/kr/text v0.2.0 // indirect
+	github.com/eclipse/paho.mqtt.golang v1.3.5
+	github.com/gorilla/websocket v1.5.0
+	github.com/influxdata/influxdb-client-go/v2 v2.8.2
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/pelletier/go-toml v1.8.1
-	github.com/stretchr/testify v1.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/sys v0.0.0-20210217105451-b926d437f341 // indirect
-	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
-	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	github.com/pelletier/go-toml v1.9.5
+	golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88
+	golang.org/x/time v0.0.0-20220411224347-583f2d630306
 )
 
-go 1.15
+require (
+	github.com/deepmap/oapi-codegen v1.10.1 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/influxdata/line-protocol v0.0.0-20210922203350-b1ad95c89adf // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
+	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
+)
