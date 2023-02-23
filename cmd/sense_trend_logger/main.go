@@ -20,6 +20,7 @@ func main() {
 		Scale      string `short:"s" long:"scale" description:"Scale" choice:"HOUR" choice:"DAY" choice:"MONTH" choice:"YEAR" required:"true"`
 		Offset     string `short:"o" long:"offset" description:"Offset from now() for start time"`
 		Start      string `short:"t" long:"timestamp" description:"Timestamp in RFC3339 format (defaults to now())"`
+		Verbose    bool   `short:"v" long:"verbose" description:"Verbose mode"`
 	}
 	_, err := flags.Parse(&opts)
 	fatalOnErr(err)
@@ -48,7 +49,7 @@ func main() {
 	fatalOnErr(err)
 
 	// Get Trend Data from Sense
-	trendRecords, err := sense.GetTrendData(cfg.Sense.Credentials, scale, starttime)
+	trendRecords, err := sense.GetTrendData(cfg.Sense.Credentials, scale, starttime, opts.Verbose)
 	fatalOnErr(err)
 
 	// Get the right config for the scale, if the data points are going to be

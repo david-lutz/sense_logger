@@ -50,7 +50,7 @@ func parseTimeAndSteps(body []byte) (time.Time, time.Time, int, error) {
 }
 
 // GetTrendData returns the Sense trend data (in what I believe are kWh) for the given start time and Scale.
-func GetTrendData(creds credentials.Credentials, scale Scale, start time.Time) ([]TrendRecord, error) {
+func GetTrendData(creds credentials.Credentials, scale Scale, start time.Time, verbose bool) ([]TrendRecord, error) {
 
 	// Get the location of the Sense Monitor from the credentials for calculating timestamps
 	location, err := time.LoadLocation(creds.TimeZone)
@@ -62,7 +62,7 @@ func GetTrendData(creds credentials.Credentials, scale Scale, start time.Time) (
 	switch scale {
 	case Hour, Day, Week, Month, Year:
 	default:
-		return nil, fmt.Errorf("Invalid Scale: %s", scale)
+		return nil, fmt.Errorf("invalid scale: %s", scale)
 	}
 
 	// HTTP Request with "Authorization" header set to the credential token
@@ -72,12 +72,27 @@ func GetTrendData(creds credentials.Credentials, scale Scale, start time.Time) (
 		return nil, err
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("bearer %s", creds.Token))
+	if verbose {
+		fmt.Printf("Request: %v\n", req)
+	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		if verbose {
+			fmt.Printf("Error Result: %v\n", res)
+		}
 		return nil, err
+	}
+	if verbose {
+		fmt.Printf("Result: %v\n", res)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
+		if verbose {
+			p := make([]byte, 1024)
+			res.Body.Read(p)
+			r := string(p)
+			fmt.Printf("r: %s\n", r)
+		}
 		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
